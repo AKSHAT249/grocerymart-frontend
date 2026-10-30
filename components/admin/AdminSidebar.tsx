@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
@@ -23,17 +24,23 @@ const menuItems = [
   { name: "Settings", path: "/admin/settings", icon: Settings },
 ];
 
-export default function AdminSidebar() {
+export default function AdminSidebar({
+  open,
+  onClose,
+}: {
+  open: boolean;
+  onClose: () => void;
+}) {
   const pathname = usePathname();
   const router = useRouter();
 
+  useEffect(() => {
+    onClose();
+  }, [pathname]);
+
   const handleLogout = async () => {
     try {
-      await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL}/admin/logout`,
-        {},
-        { withCredentials: true }
-      );
+      localStorage.removeItem("grocery_admin_token");
     } finally {
       router.replace("/admin/login");
       router.refresh();
@@ -41,7 +48,16 @@ export default function AdminSidebar() {
   };
 
   return (
-    <aside className="w-64 min-h-screen bg-white border-r flex flex-col">
+    <>
+    {open && (
+      <button
+        type="button"
+        aria-label="Close menu"
+        onClick={onClose}
+        className="fixed inset-0 z-30 bg-black/40 lg:hidden"
+      />
+    )}
+    <aside className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r bg-white transition-transform lg:static lg:translate-x-0 ${open ? "translate-x-0" : "-translate-x-full"}`}>
 
       {/* Logo */}
       <div className="h-20 flex items-center gap-3 px-6 border-b">
@@ -72,6 +88,7 @@ export default function AdminSidebar() {
             <Link
               key={item.path}
               href={item.path}
+              onClick={onClose}
               className={`flex items-center gap-3 px-3 py-3 rounded-lg text-sm transition ${
                 active
                   ? "bg-green-50 text-green-700 font-semibold"
@@ -106,5 +123,6 @@ export default function AdminSidebar() {
         </button>
       </div>
     </aside>
+    </>
   );
 }

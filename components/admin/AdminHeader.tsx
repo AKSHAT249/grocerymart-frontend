@@ -1,28 +1,38 @@
 "use client";
 
-import { Bell, Search } from "lucide-react";
+import { Bell, Menu, Search } from "lucide-react";
 
-export default function AdminHeader() {
+export default function AdminHeader({ onMenu }: { onMenu: () => void }) {
   return (
-    <header className="h-20 bg-white border-b px-6 flex items-center justify-between">
+    <header className="flex h-16 items-center justify-between gap-3 border-b bg-white px-4 sm:h-20 sm:px-6">
 
-      <div>
-        <h1 className="text-xl font-bold text-gray-800">
-          Admin Panel
-        </h1>
-        <p className="text-sm text-gray-500">
-          Manage your grocery store
-        </p>
+      <div className="flex min-w-0 items-center gap-2">
+        <button
+          type="button"
+          aria-label="Open menu"
+          onClick={onMenu}
+          className="rounded-lg p-2 text-gray-700 hover:bg-gray-100 lg:hidden"
+        >
+          <Menu size={22} />
+        </button>
+        <div className="min-w-0">
+          <h1 className="truncate text-lg font-bold text-gray-800 sm:text-xl">
+            Admin Panel
+          </h1>
+          <p className="hidden text-sm text-gray-500 sm:block">
+            Manage your grocery store
+          </p>
+        </div>
       </div>
 
-      <div className="flex items-center gap-5">
+      <div className="flex shrink-0 items-center gap-3 sm:gap-5">
 
-        <div className="flex items-center bg-gray-50 border rounded-lg px-3 py-2">
+        <div className="hidden items-center rounded-lg border bg-gray-50 px-3 py-2 sm:flex">
           <Search size={18} className="text-gray-400" />
           <input
             type="text"
             placeholder="Search..."
-            className="bg-transparent outline-none px-2 text-sm w-40"
+            className="w-28 bg-transparent px-2 text-sm outline-none md:w-40"
           />
         </div>
 

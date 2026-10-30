@@ -12,6 +12,7 @@ export default function AdminLayout({ children }) {
     const router = useRouter();
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [isChecking, setIsChecking] = useState(true);
+    const [menuOpen, setMenuOpen] = useState(false);
 
     useEffect(() => {
         const token = localStorage.getItem("grocery_admin_token");
@@ -35,12 +36,12 @@ export default function AdminLayout({ children }) {
                     Checking authentication...
                 </div>
             )}
-            <div className={blocked ? "hidden" : "min-h-screen"}>
+            <div className={blocked ? "hidden" : "min-h-screen overflow-x-hidden"}>
                 <div className="flex min-h-screen">
-                    <AdminSidebar />
-                    <div className="flex-1 min-w-0">
-                        <AdminHeader />
-                        <main className="p-6">{children}</main>
+                    <AdminSidebar open={menuOpen} onClose={() => setMenuOpen(false)} />
+                    <div className="flex min-w-0 flex-1 flex-col">
+                        <AdminHeader onMenu={() => setMenuOpen(true)} />
+                        <main className="min-w-0 flex-1 p-4 sm:p-6">{children}</main>
                     </div>
                 </div>
             </div>
