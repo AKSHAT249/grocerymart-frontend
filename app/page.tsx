@@ -22,10 +22,9 @@ interface Product {
 export default function Home() {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
-  const [selectedCategory, setSelectedCategory] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [cart, setCart] = useState<Record<string, number>>({});
   const [showCheckout, setShowCheckout] = useState(false);
-  console.log("cart",cart)
   const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [allCategories, setAllCategories] = useState<string[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
@@ -33,15 +32,9 @@ export default function Home() {
   const [total, setTotal] = useState<number>(0);
 
 
-  console.log("allProducts", allProducts)
-  console.log("cart", cart)
-
-
-
   useEffect(() => {
       const fetchAllProducts = async () => {
         const response = await axios.get("http://localhost:5000/products");
-        console.log(response.data);
           setAllProducts(response.data);
           setFilteredProducts(response.data);
           const categories = [
@@ -67,6 +60,10 @@ export default function Home() {
   }, [cart])
 
   useEffect(() => {
+    if((selectedCategory as unknown as string) === "All"){
+      setFilteredProducts(allProducts);
+      return;
+    }
     const filteredData = allProducts.filter((product) => {
       return product.category === (selectedCategory as any);
     });
@@ -111,6 +108,7 @@ export default function Home() {
         cartItems={cartItems}
         onBack={() => setShowCheckout(false)}
         onPlaceOrder={() => alert("Order placed!")}
+        onChangeQuantity={changeQuantity}
       />
     );
   }
@@ -194,7 +192,6 @@ export default function Home() {
                 {product.emoji}
               </div>
 
-              <p className="mt-4 text-xs text-gray-500">{product.unit}</p>
               <h3 className="mt-1 min-h-10 text-sm font-semibold leading-5">
                 {product.name}
               </h3>

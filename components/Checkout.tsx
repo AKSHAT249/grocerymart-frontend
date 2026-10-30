@@ -2,6 +2,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { Minus, Plus } from "lucide-react";
 
 type CartItem = {
   id: string;
@@ -15,12 +16,14 @@ type CheckoutProps = {
   cartItems: CartItem[];
   onPlaceOrder: () => void;
   onBack: () => void;
+  onChangeQuantity: (id: string, amount: number) => void;
 };
 
 export default function Checkout({
   cartItems,
   onPlaceOrder,
   onBack,
+  onChangeQuantity, 
 }: CheckoutProps) {
   const subtotal = useMemo(
     () =>
@@ -112,9 +115,25 @@ export default function Checkout({
                     <p className="text-sm text-gray-500 mt-1">
                       {formatPrice(Number(item.price))} per item
                     </p>
-                    <p className="text-sm text-gray-600 mt-2">
-                      Quantity: {item.quantity}
-                    </p>
+                    <div className="mt-3 inline-flex items-center gap-2 rounded-lg bg-green-700 px-2 py-1.5 text-white">
+                      <button
+                        type="button"
+                        aria-label={`Remove one ${item.name}`}
+                        onClick={() => onChangeQuantity(item.id, -1)}
+                      >
+                        <Minus size={15} />
+                      </button>
+                      <span className="min-w-4 text-center text-sm font-semibold">
+                        {item.quantity}
+                      </span>
+                      <button
+                        type="button"
+                        aria-label={`Add one ${item.name}`}
+                        onClick={() => onChangeQuantity(item.id, 1)}
+                      >
+                        <Plus size={15} />
+                      </button>
+                    </div>
                   </div>
 
                   <p className="font-semibold text-gray-900 whitespace-nowrap">
