@@ -34,7 +34,7 @@ export default function Home() {
 
   useEffect(() => {
       const fetchAllProducts = async () => {
-        const response = await axios.get("http://localhost:5000/products");
+        const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/products`);
           setAllProducts(response.data);
           setFilteredProducts(response.data);
           const categories = [
@@ -188,9 +188,9 @@ export default function Home() {
               key={product.id}
               className="rounded-2xl border border-gray-100 p-3 transition hover:border-gray-200 sm:p-4"
             >
-              <div className={`flex aspect-square items-center justify-center rounded-xl text-6xl ${product.color}`}>
+              {/* <div className={`flex aspect-square items-center justify-center rounded-xl text-6xl ${product.color}`}>
                 {product.emoji}
-              </div>
+              </div> */}
 
               <h3 className="mt-1 min-h-10 text-sm font-semibold leading-5">
                 {product.name}
