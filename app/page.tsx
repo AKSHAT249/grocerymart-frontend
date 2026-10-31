@@ -6,6 +6,7 @@ import { useEffect } from "react";
 import axios from "axios";
 import { Search, ShoppingBasket, MapPin, Plus, Minus } from "lucide-react";
 import Checkout from "@/components/Checkout";
+import CategoryCard from "@/components/CategoryCard";
 
 
 interface Product {
@@ -19,17 +20,26 @@ interface Product {
   is_available: boolean;
 }
 
+interface Category {
+  id: string;
+  name: string;
+  description: string;
+  image_url: string | null;
+  is_available: boolean;
+}
+
 export default function Home() {
   const [search, setSearch] = useState("");
-  const [category, setCategory] = useState("All");
-  const [selectedCategory, setSelectedCategory] = useState<string>("All");
+  const [selectedCategory] = useState<string>("All");
   const [cart, setCart] = useState<Record<string, number>>({});
   const [showCheckout, setShowCheckout] = useState(false);
   const [allProducts, setAllProducts] = useState<Product[]>([]);
-  const [allCategories, setAllCategories] = useState<string[]>([]);
+  const [allCategories, setAllCategories] = useState<Category[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [cartCount, setCartCount] = useState(0);
   const [total, setTotal] = useState<number>(0);
+
+  console.log("all categories 12434", allCategories);
 
 
   useEffect(() => {
@@ -37,14 +47,23 @@ export default function Home() {
         const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/products`);
           setAllProducts(response.data);
           setFilteredProducts(response.data);
-          const categories = [
-            "All",
-            ...new Set(response.data.map((product: Product) => product.category)),
-          ];
-          setAllCategories(categories as string[]);
+          // const categories = [
+          //   "All",
+          //   ...new Set(response.data.map((product: Product) => product.category)),
+          // ];
+          // setAllCategories(categories as string[]);
 
       };
       fetchAllProducts();
+  }, []);
+
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/categories`);
+      setAllCategories(response?.data?.data as Category[]);
+    };
+    fetchCategories();
   }, []);
 
   useEffect(() => {
@@ -155,23 +174,17 @@ export default function Home() {
         </div>
       </section>
 
+
+
       <section className="mx-auto max-w-7xl px-4 pt-8 sm:px-6">
-        <div className="flex gap-2 overflow-x-auto pb-3">
-          {allCategories.map((item: string) => (
-            <button
-              key={item}
-              onClick={() => {
-                setCategory(item);
-                setSelectedCategory(item);
-              }}
-              className={`shrink-0 rounded-full px-4 py-2 text-sm transition ${
-                category === item
-                  ? "bg-green-700 text-white"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-              }`}
-            >
-              {item}
-            </button>
+        <div className="grid grid-cols-3 gap-x-3 gap-y-5 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7">
+          {allCategories.map((item) => (
+            <CategoryCard
+              key={item.id}
+              id={item.id}
+              name={item.name}
+              imageUrl={item.image_url}
+            />
           ))}
         </div>
 
