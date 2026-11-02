@@ -39,8 +39,6 @@ export default function Home() {
   const [cartCount, setCartCount] = useState(0);
   const [total, setTotal] = useState<number>(0);
 
-  console.log("all categories 12434", allCategories);
-
 
   useEffect(() => {
       const fetchAllProducts = async () => {
