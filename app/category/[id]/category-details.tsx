@@ -4,6 +4,10 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import axios from "axios";
+import { Minus, Plus } from "lucide-react";
+import { useDispatch, useSelector } from "react-redux";
+import { addToCart, decreaseQuantity } from "@/lib/features/cart/cartSlice";
+import { RootState } from "@/lib/store";
 
 type Category = {
   id: string;
@@ -32,6 +36,7 @@ type Product = {
 
 export default function CategoryDetails() {
   const params = useParams<{ id: string }>();
+  const dispatch = useDispatch();
   const [category, setCategory] = useState<Category | null>(null);
   const [missing, setMissing] = useState(false);
   const [subCategories, setSubCategories] = useState<SubCategory[]>([]);
@@ -39,6 +44,7 @@ export default function CategoryDetails() {
   const [selectedSubCategory, setSelectedSubCategory] = useState<SubCategory | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(false);
+  const cart = useSelector((state: RootState) => state.cart.items);
 
   useEffect(() => {
     const id = params.id;
@@ -217,6 +223,18 @@ export default function CategoryDetails() {
                 {products.map((product) => {
                   const image = product.product_image_url || product.image_url;
                   const price = product.selling_price || product.price;
+                  const quantity =
+                    cart.find((item) => item.id === product.id)?.quantity ?? 0;
+                  const addItem = () =>
+                    dispatch(
+                      addToCart({
+                        id: product.id,
+                        name: product.name,
+                        price: Number(price),
+                        image: image || undefined,
+                        quantity: 1,
+                      })
+                    );
                   return (
                     <article
                       key={product.id}
@@ -238,9 +256,41 @@ export default function CategoryDetails() {
                       <h3 className="mt-3 line-clamp-2 min-h-10 text-sm font-semibold leading-5">
                         {product.name}
                       </h3>
-                      {price && (
-                        <p className="mt-2 font-bold">₹{Number(price).toFixed(2)}</p>
-                      )}
+                      <div className="mt-3 flex items-center justify-between gap-2">
+                        {price && (
+                          <p className="font-bold">₹{Number(price).toFixed(2)}</p>
+                        )}
+                        {quantity > 0 ? (
+                          <div className="ml-auto flex items-center gap-2 rounded-lg bg-green-700 px-2 py-1.5 text-white">
+                            <button
+                              type="button"
+                              aria-label={`Remove one ${product.name}`}
+                              onClick={() => dispatch(decreaseQuantity(product.id))}
+                            >
+                              <Minus size={15} />
+                            </button>
+                            <span className="min-w-4 text-center text-sm font-semibold">
+                              {quantity}
+                            </span>
+                            <button
+                              type="button"
+                              aria-label={`Add one ${product.name}`}
+                              onClick={addItem}
+                            >
+                              <Plus size={15} />
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            aria-label={`Add ${product.name}`}
+                            onClick={addItem}
+                            className="ml-auto flex h-8 w-8 items-center justify-center rounded-lg border border-green-700 text-green-700 hover:bg-green-50"
+                          >
+                            <Plus size={16} />
+                          </button>
+                        )}
+                      </div>
                     </article>
                   );
                 })}

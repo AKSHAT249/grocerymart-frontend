@@ -7,7 +7,9 @@ import axios from "axios";
 import { Search, ShoppingBasket, MapPin, Plus, Minus } from "lucide-react";
 import Checkout from "@/components/Checkout";
 import CategoryCard from "@/components/CategoryCard";
-
+import { useDispatch, useSelector } from "react-redux";
+import { RootState } from "@/lib/store";
+import { increment, decrement, incrementByAmount, decrementByAmount, reset } from "@/lib/features/counter/counterSlice";
 
 interface Product {
   id: string;
@@ -29,6 +31,7 @@ interface Category {
 }
 
 export default function Home() {
+  const dispatch = useDispatch();
   const [search, setSearch] = useState("");
   const [selectedCategory] = useState<string>("All");
   const [cart, setCart] = useState<Record<string, number>>({});
@@ -132,23 +135,7 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-white pb-28 text-gray-900">
-      <header className="sticky top-0 z-20 border-b border-gray-100 bg-white/95 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
-          <a href="/" className="text-xl font-black tracking-tight">
-            daily<span className="text-green-600">basket.</span>
-          </a>
-
-          <div className="hidden items-center gap-2 text-sm text-gray-500 sm:flex">
-            <MapPin size={17} className="text-green-600" />
-            Everyday essentials, near you
-          </div>
-
-          <div className="flex items-center gap-2 rounded-full bg-gray-50 px-3 py-2 text-sm">
-            <ShoppingBasket size={18} />
-            <span>{cartCount} items</span>
-          </div>
-        </div>
-      </header>
+      
 
       <section className="mx-auto max-w-7xl px-4 pt-8 sm:px-6 sm:pt-12">
         <p className="mb-2 text-sm font-semibold text-green-700">
