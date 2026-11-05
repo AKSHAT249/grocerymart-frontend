@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import CategoryDetails from "./category-details";
+import Header from "@/components/Header";
 
 export default function CategoryPage() {
   return (
@@ -10,6 +11,7 @@ export default function CategoryPage() {
         </main>
       }
     >
+      <Header />
       <CategoryDetails />
     </Suspense>
   );

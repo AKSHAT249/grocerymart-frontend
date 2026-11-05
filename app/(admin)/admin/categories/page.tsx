@@ -52,7 +52,7 @@ export default function CategoriesPage() {
   const [brokenImages, setBrokenImages] = useState<Record<string, boolean>>({});
 
   async function loadCategories() {
-    const response = await axios.get(`${apiBase}/api/categories`);
+    const response = await axios.get(`${apiBase}/api/categories/`);
     setCategories(response.data.data ?? []);
   }
 
@@ -132,6 +132,8 @@ export default function CategoriesPage() {
       setSaving(false);
     }
   }
+
+  console.log("{cvvvvvvvvvvvv",visibleCategories)
 
   return (
     <div className="text-gray-900">

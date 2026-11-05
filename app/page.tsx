@@ -10,7 +10,7 @@ import CategoryCard from "@/components/CategoryCard";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "@/lib/store";
 import { increment, decrement, incrementByAmount, decrementByAmount, reset } from "@/lib/features/counter/counterSlice";
-
+import Header from "@/components/Header";
 interface Product {
   id: string;
   name: string;
@@ -61,7 +61,7 @@ export default function Home() {
 
   useEffect(() => {
     const fetchCategories = async () => {
-      const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/categories`);
+      const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/categories/active`);
       setAllCategories(response?.data?.data as Category[]);
     };
     fetchCategories();
@@ -135,7 +135,7 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-white pb-28 text-gray-900">
-      
+      <Header />
 
       <section className="mx-auto max-w-7xl px-4 pt-8 sm:px-6 sm:pt-12">
         <p className="mb-2 text-sm font-semibold text-green-700">

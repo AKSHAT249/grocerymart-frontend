@@ -12,6 +12,7 @@ import {
   Settings,
   LogOut,
   Store,
+  List,
 } from "lucide-react";
 import axios from "axios";
 
@@ -20,6 +21,7 @@ const menuItems = [
   { name: "Orders", path: "/admin/orders", icon: ShoppingBag },
   { name: "Inventory", path: "/admin/inventory", icon: Package },
   { name: "Categories", path: "/admin/categories", icon: Tags },
+  { name: "Subcategories", path: "/admin/subcategies", icon: List },
   { name: "Expiry Management", path: "/admin/expiry", icon: Clock },
   { name: "Settings", path: "/admin/settings", icon: Settings },
 ];
