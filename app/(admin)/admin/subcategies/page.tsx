@@ -85,7 +85,7 @@ function errorMessage(error: unknown, fallback: string) {
   return fallback;
 }
 
-function emptyForm(categoryId: string): SubcategoryForm {
+function blankForm(categoryId: string): SubcategoryForm {
   return {
     category_id: categoryId,
     name: "",
@@ -138,13 +138,17 @@ function Thumb({
 export default function SubcategoriesPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [subcategories, setSubcategories] = useState<Subcategory[]>([]);
+  
   const [selectedId, setSelectedId] = useState("");
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [panel, setPanel] = useState<"categories" | "subcategories">("categories");
   const [editorId, setEditorId] = useState<string | null | undefined>(undefined);
-  const [form, setForm] = useState<SubcategoryForm>(emptyForm(""));
+  const [form, setForm] = useState<SubcategoryForm>(blankForm(""));
+
+
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [formError, setFormError] = useState("");
   const [saving, setSaving] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<Subcategory | null>(null);
@@ -262,7 +266,8 @@ export default function SubcategoriesPage() {
   function openCreate() {
     if (!selected) return;
     setEditorId(null);
-    setForm(emptyForm(selected.id));
+    setForm(blankForm(selected.id));
+    setImageFile(null);
     setFormError("");
   }
 
@@ -274,6 +279,7 @@ export default function SubcategoriesPage() {
       image_url: item.image_url,
       is_active: item.is_active,
     });
+    setImageFile(null);
     setFormError("");
   }
 
@@ -284,6 +290,7 @@ export default function SubcategoriesPage() {
       return;
     }
 
+    setImageFile(file);
     const reader = new FileReader();
     reader.onload = () => {
       if (typeof reader.result === "string") {
@@ -300,59 +307,129 @@ export default function SubcategoriesPage() {
       setFormError("Enter a subcategory name.");
       return;
     }
-
-    const duplicate = subcategories.some(
-      (item) =>
-        item.category_id === form.category_id &&
-        item.name.trim().toLowerCase() === name.toLowerCase() &&
-        item.id !== editorId
-    );
-
-    if (duplicate) {
-      setFormError("A subcategory with this name already exists in this category.");
-      notify("error", "That name is already used in this category.");
+    if (!imageFile) {
+      setFormError("Add a subcategory image.");
       return;
     }
 
-    setSaving(true);
+    const formData = new FormData();
+    formData.append("name", name);
+    formData.append("is_active", form.is_active ? "1" : "0");
+    if (imageFile) formData.append("image", imageFile);
 
-    window.setTimeout(() => {
-      if (editorId) {
-        setSubcategories((current) =>
-          current.map((item) =>
-            item.id === editorId
-              ? {
-                  ...item,
-                  category_id: form.category_id,
-                  name,
-                  image_url: form.image_url,
-                  is_active: form.is_active,
-                }
-              : item
-          )
-        );
-        notify("success", `${name} updated.`);
-      } else {
+    const categoryId = form.category_id || selectedId;
+    setSaving(true);
+    axios.post(`${apiBase}/api/subcategories/${categoryId}`, formData).then((response) => {
+      console.log("response  response", response)
+      const created = response.data;
+      if (created && typeof created === "object" && "id" in created) {
         setSubcategories((current) => [
-          {
-            id: `local-${Date.now()}`,
-            category_id: form.category_id,
-            name,
-            image_url: form.image_url,
-            is_active: form.is_active,
-            product_count: 0,
-          },
+          normalizeSubcategory(created as Record<string, unknown>, 0),
           ...current,
         ]);
-        notify("success", `${name} added.`);
       }
-
-      setSelectedId(form.category_id);
+      setSelectedId(categoryId);
       setPanel("subcategories");
       setEditorId(undefined);
-      setFormError("");
+      setForm(blankForm(categoryId));
+      setImageFile(null);
+      notify("success", `${name} added.`);
+    }).catch((error) => {
+      console.log("error  error", error)
+      notify("error", `Failed to add ${name}.`);
+    })
+    .finally(() => {
       setSaving(false);
-    }, 280);
+    })
+
+    //   if (editorId) {
+    //     setSubcategories((current) =>
+    //       current.map((item) =>
+    //         item.id === editorId
+    //           ? {
+    //               ...item,
+    //               category_id: form.category_id,
+    //               name,
+    //               image_url: form.image_url,
+    //               is_active: form.is_active,
+    //             }
+    //           : item
+    //       )
+    //     );
+    //     notify("success", `${name} updated.`);
+    //   } else {
+    //     setSubcategories((current) => [
+    //       {
+    //         id: `local-${Date.now()}`,
+    //         category_id: form.category_id,
+    //         name,
+    //         image_url: form.image_url,
+    //         is_active: form.is_active,
+    //         product_count: 0,
+    //       },
+    //       ...current,
+    //     ]);
+    //     notify("success", `${name} added.`);
+    //   }
+
+    //   setSelectedId(form.category_id);
+    //   setPanel("subcategories");
+    //   setEditorId(undefined);
+    //   setFormError("");
+    //   setSaving(false);
+    // }, 280);
+  }
+
+  function handleUpdate(event: FormEvent) {
+    event.preventDefault();
+    const name = form.name.trim();
+    if (!name) {
+      setFormError("Enter a subcategory name.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("name", name);
+    formData.append("is_active", form.is_active ? "1" : "0");
+    if (imageFile) formData.append("image", imageFile);
+
+    axios.put(`${apiBase}/api/subcategories/${editorId}`, formData).then((response) => {
+      console.log("response  response", response)
+      const updated = response.data;
+      if (updated && typeof updated === "object" && "id" in updated) {
+        setSubcategories((current) => current.map((item) => item.id === editorId ? updated as Subcategory : item));
+      }
+      notify("success", `${name} updated.`);
+    }).catch((error) => {
+      console.log("error  error", error)
+      notify("error", `Failed to update ${name}.`);
+    })
+    .finally(() => {
+      setSaving(false);
+      setEditorId(undefined);
+      setFormError("");
+      setForm(blankForm(form.category_id));
+      setImageFile(null);
+      setSelectedId(form.category_id);
+      setPanel("subcategories");
+    })
+  }
+
+  const handleDelete = (item: Subcategory) => {
+    axios.delete(`${apiBase}/api/subcategories/${item.id}`).then((response) => {
+      console.log("response  response", response)
+      const deleted = response.data;
+      if (deleted && typeof deleted === "object" && "id" in deleted) {
+        setSubcategories((current) => current.filter((item) => item.id !== deleted.id));
+      }
+    })
+    .catch((error) => {
+      console.log("error  error", error)
+      notify("error", `Failed to delete ${item.name}.`);
+    })
+    .finally(() => {
+      setSaving(false);
+    })
   }
 
   function toggleStatus(item: Subcategory) {
@@ -555,7 +632,7 @@ export default function SubcategoriesPage() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => setPendingDelete(item)}
+                          onClick={() => handleDelete(item)}
                           className="inline-flex items-center gap-1.5 rounded-xl border border-red-100 bg-white px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50"
                         >
                           <Trash2 size={13} />
@@ -571,13 +648,13 @@ export default function SubcategoriesPage() {
         </div>
       )}
 
-      {editorOpen && (
+      {editorOpen && (  
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4">
           <form
             role="dialog"
             aria-modal="true"
             aria-labelledby="subcategory-form-title"
-            onSubmit={handleSubmit}
+            onSubmit={ editorId ? handleUpdate : handleSubmit}
             className="max-h-[92vh] w-full overflow-y-auto rounded-t-3xl bg-white p-5 shadow-xl sm:max-w-lg sm:rounded-3xl"
           >
             <div className="flex items-start justify-between gap-4">
@@ -659,7 +736,10 @@ export default function SubcategoriesPage() {
                     </label>
                     <button
                       type="button"
-                      onClick={() => setForm((current) => ({ ...current, image_url: "" }))}
+                      onClick={() => {
+                        setImageFile(null);
+                        setForm((current) => ({ ...current, image_url: "" }));
+                      }}
                       className="rounded-xl border border-red-100 px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50"
                     >
                       Remove
