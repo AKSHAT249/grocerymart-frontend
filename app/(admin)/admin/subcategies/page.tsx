@@ -151,7 +151,6 @@ export default function SubcategoriesPage() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [formError, setFormError] = useState("");
   const [saving, setSaving] = useState(false);
-  const [pendingDelete, setPendingDelete] = useState<Subcategory | null>(null);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [brokenImages, setBrokenImages] = useState<Record<string, boolean>>({});
 
@@ -215,18 +214,17 @@ export default function SubcategoriesPage() {
   }, []);
 
   useEffect(() => {
-    if (editorId === undefined && !pendingDelete) return;
+    if (editorId === undefined) return;
 
     function onKey(event: KeyboardEvent) {
       if (event.key !== "Escape") return;
       setEditorId(undefined);
-      setPendingDelete(null);
       setFormError("");
     }
 
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [editorId, pendingDelete]);
+  }, [editorId]);
 
   const visibleCategories = useMemo(() => {
     const term = query.trim().toLowerCase();
@@ -315,12 +313,11 @@ export default function SubcategoriesPage() {
     const formData = new FormData();
     formData.append("name", name);
     formData.append("is_active", form.is_active ? "1" : "0");
-    if (imageFile) formData.append("image", imageFile);
+    formData.append("image", imageFile);
 
     const categoryId = form.category_id || selectedId;
     setSaving(true);
     axios.post(`${apiBase}/api/subcategories/${categoryId}`, formData).then((response) => {
-      console.log("response  response", response)
       const created = response.data;
       if (created && typeof created === "object" && "id" in created) {
         setSubcategories((current) => [
@@ -334,50 +331,12 @@ export default function SubcategoriesPage() {
       setForm(blankForm(categoryId));
       setImageFile(null);
       notify("success", `${name} added.`);
-    }).catch((error) => {
-      console.log("error  error", error)
+    }).catch(() => {
       notify("error", `Failed to add ${name}.`);
     })
     .finally(() => {
       setSaving(false);
-    })
-
-    //   if (editorId) {
-    //     setSubcategories((current) =>
-    //       current.map((item) =>
-    //         item.id === editorId
-    //           ? {
-    //               ...item,
-    //               category_id: form.category_id,
-    //               name,
-    //               image_url: form.image_url,
-    //               is_active: form.is_active,
-    //             }
-    //           : item
-    //       )
-    //     );
-    //     notify("success", `${name} updated.`);
-    //   } else {
-    //     setSubcategories((current) => [
-    //       {
-    //         id: `local-${Date.now()}`,
-    //         category_id: form.category_id,
-    //         name,
-    //         image_url: form.image_url,
-    //         is_active: form.is_active,
-    //         product_count: 0,
-    //       },
-    //       ...current,
-    //     ]);
-    //     notify("success", `${name} added.`);
-    //   }
-
-    //   setSelectedId(form.category_id);
-    //   setPanel("subcategories");
-    //   setEditorId(undefined);
-    //   setFormError("");
-    //   setSaving(false);
-    // }, 280);
+    });
   }
 
   function handleUpdate(event: FormEvent) {
@@ -393,15 +352,14 @@ export default function SubcategoriesPage() {
     formData.append("is_active", form.is_active ? "1" : "0");
     if (imageFile) formData.append("image", imageFile);
 
+    setSaving(true);
     axios.put(`${apiBase}/api/subcategories/${editorId}`, formData).then((response) => {
-      console.log("response  response", response)
       const updated = response.data;
       if (updated && typeof updated === "object" && "id" in updated) {
         setSubcategories((current) => current.map((item) => item.id === editorId ? updated as Subcategory : item));
       }
       notify("success", `${name} updated.`);
-    }).catch((error) => {
-      console.log("error  error", error)
+    }).catch(() => {
       notify("error", `Failed to update ${name}.`);
     })
     .finally(() => {
@@ -417,19 +375,14 @@ export default function SubcategoriesPage() {
 
   const handleDelete = (item: Subcategory) => {
     axios.delete(`${apiBase}/api/subcategories/${item.id}`).then((response) => {
-      console.log("response  response", response)
       const deleted = response.data;
       if (deleted && typeof deleted === "object" && "id" in deleted) {
         setSubcategories((current) => current.filter((item) => item.id !== deleted.id));
       }
     })
-    .catch((error) => {
-      console.log("error  error", error)
+    .catch(() => {
       notify("error", `Failed to delete ${item.name}.`);
-    })
-    .finally(() => {
-      setSaving(false);
-    })
+    });
   }
 
   function toggleStatus(item: Subcategory) {
@@ -438,13 +391,6 @@ export default function SubcategoriesPage() {
       current.map((entry) => (entry.id === item.id ? { ...entry, is_active: next } : entry))
     );
     notify("success", `${item.name} ${next ? "activated" : "deactivated"}.`);
-  }
-
-  function confirmDelete() {
-    if (!pendingDelete) return;
-    setSubcategories((current) => current.filter((item) => item.id !== pendingDelete.id));
-    notify("success", `${pendingDelete.name} deleted.`);
-    setPendingDelete(null);
   }
 
   const editorOpen = editorId !== undefined;
@@ -819,39 +765,6 @@ export default function SubcategoriesPage() {
         </div>
       )}
 
-      {pendingDelete && (
-        <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/40 p-4 sm:items-center">
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="delete-subcategory-title"
-            className="w-full max-w-sm rounded-3xl bg-white p-5 shadow-xl"
-          >
-            <h3 id="delete-subcategory-title" className="text-lg font-bold">
-              Delete {pendingDelete.name}?
-            </h3>
-            <p className="mt-2 text-sm text-gray-500">
-              This removes it from {selected?.name}. This cannot be undone.
-            </p>
-            <div className="mt-5 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-              <button
-                type="button"
-                onClick={() => setPendingDelete(null)}
-                className="rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-semibold text-gray-600 hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={confirmDelete}
-                className="rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-700"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       <div className="pointer-events-none fixed bottom-4 right-4 z-[80] flex w-[min(100%-2rem,22rem)] flex-col gap-2">
         {toasts.map((toast) => (

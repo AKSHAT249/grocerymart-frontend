@@ -133,7 +133,7 @@ export default function CategoriesPage() {
     }
   }
 
-  console.log("{cvvvvvvvvvvvv",visibleCategories)
+  
 
   return (
     <div className="text-gray-900">
