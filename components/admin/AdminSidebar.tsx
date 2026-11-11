@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
@@ -13,8 +13,8 @@ import {
   LogOut,
   Store,
   List,
+  Boxes,
 } from "lucide-react";
-import axios from "axios";
 
 const menuItems = [
   { name: "Dashboard", path: "/admin", icon: LayoutDashboard },
@@ -22,6 +22,7 @@ const menuItems = [
   { name: "Inventory", path: "/admin/inventory", icon: Package },
   { name: "Categories", path: "/admin/categories", icon: Tags },
   { name: "Subcategories", path: "/admin/subcategies", icon: List },
+  { name: "Products", path: "/admin/products", icon: Boxes },
   { name: "Expiry Management", path: "/admin/expiry", icon: Clock },
   { name: "Settings", path: "/admin/settings", icon: Settings },
 ];
@@ -35,6 +36,11 @@ export default function AdminSidebar({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     onClose();
@@ -82,9 +88,9 @@ export default function AdminSidebar({
           const Icon = item.icon;
 
           const active =
-            pathname === item.path ||
-            (item.path !== "/admin" &&
-              pathname.startsWith(item.path));
+            mounted &&
+            (pathname === item.path ||
+              (item.path !== "/admin" && pathname.startsWith(`${item.path}/`)));
 
           return (
             <Link

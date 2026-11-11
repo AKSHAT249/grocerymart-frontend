@@ -386,11 +386,15 @@ export default function SubcategoriesPage() {
   }
 
   function toggleStatus(item: Subcategory) {
-    const next = !item.is_active;
-    setSubcategories((current) =>
-      current.map((entry) => (entry.id === item.id ? { ...entry, is_active: next } : entry))
-    );
-    notify("success", `${item.name} ${next ? "activated" : "deactivated"}.`);
+    const status = !item.is_active;
+    axios.put(`${apiBase}/api/subcategories/${item.id}`, { is_active: status }).then((response) => {
+      const updated = response.data;
+      if (updated && typeof updated === "object" && "id" in updated) {
+        setSubcategories((current) => current.map((item) => item.id === updated.id ? updated as Subcategory : item));
+      }
+    }).catch(() => {
+      notify("error", `Failed to ${status ? "activate" : "deactivate"} ${item.name}.`);
+    });
   }
 
   const editorOpen = editorId !== undefined;
