@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Minus, Plus } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "@/lib/store";
@@ -9,6 +10,9 @@ import { clearCart, decreaseQuantity, increaseQuantity } from "@/lib/features/ca
 
 const shippingCharges = 0;
 const handlingCharges = 0;
+const WA_NUMBER = process.env.NEXT_PUBLIC_WA_NUMBER || "";
+const waLink = (msg: string) =>
+  `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(msg)}`;
 
 const formatPrice = (price: number) =>
   `₹${price.toLocaleString("en-IN", {
@@ -18,18 +22,35 @@ const formatPrice = (price: number) =>
 
 export default function CheckoutPage() {
   const dispatch = useDispatch();
-  const [orderPlaced, setOrderPlaced] = useState(false);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const orderPlaced = searchParams.get("placed") === "1";
   const cart = useSelector((state: RootState) => state.cart.items);
   const itemCount = cart.reduce((total, item) => total + item.quantity, 0);
   const subtotal = cart.reduce((total, item) => total + item.price * item.quantity, 0);
   const grandTotal = subtotal + shippingCharges + handlingCharges;
 
   const placeOrder = () => {
+    const message = [
+      "New grocery order",
+      "",
+      ...cart.map((item) => `• ${item.name} x ${item.quantity}`),
+      "",
+      `Total to pay: ${formatPrice(grandTotal)}`,
+    ].join("\n");
+
+    window.open(waLink(message), "_blank", "noopener,noreferrer");
     dispatch(clearCart());
-    setOrderPlaced(true);
+    router.replace("/checkout?placed=1");
   };
 
-  if (orderPlaced) {
+  useEffect(() => {
+    if (cart.length > 0 && orderPlaced) {
+      router.replace("/checkout");
+    }
+  }, [cart.length, orderPlaced, router]);
+
+  if (orderPlaced && cart.length === 0) {
     return (
       <main className="flex min-h-[70vh] flex-col items-center justify-center px-6 text-center text-gray-900">
         <p className="text-5xl">✅</p>
