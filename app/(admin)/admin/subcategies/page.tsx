@@ -154,53 +154,62 @@ export default function SubcategoriesPage() {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [brokenImages, setBrokenImages] = useState<Record<string, boolean>>({});
 
+  async function fetchCategories() {
+    const categoryResponse = await axios.get(`${apiBase}/api/categories/`, { timeout: 12000 });
+    const categoryRows = asRows(categoryResponse.data)
+      .map(normalizeCategory)
+      .filter((category) => category.id);
+
+    setCategories(categoryRows);
+    setSelectedId((current) =>
+      categoryRows.some((category) => category.id === current)
+        ? current
+        : categoryRows[0]?.id ?? ""
+    );
+    return categoryRows;
+  }
+
+  async function fetchingSubcategories(categoryRows: Category[] = categories) {
+    const productResponse = await axios
+      .get(`${apiBase}/api/products`, { timeout: 12000 })
+      .catch(() => ({ data: [] }));
+    const productCounts: Record<string, number> = {};
+    for (const product of asRows(productResponse.data)) {
+      const subcategoryId = String(product.subcategory_id ?? "");
+      if (!subcategoryId) continue;
+      productCounts[subcategoryId] = (productCounts[subcategoryId] ?? 0) + 1;
+    }
+
+    const lists = await Promise.all(
+      categoryRows.map(async (category) => {
+        try {
+          const response = await axios.get(`${apiBase}/api/subcategories/${category.id}`, {
+            timeout: 12000,
+          });
+          return asRows(response.data)
+            .map((row) => normalizeSubcategory(row, productCounts[String(row.id ?? "")] ?? 0))
+            .filter((item) => item.id);
+        } catch {
+          return [] as Subcategory[];
+        }
+      })
+    );
+
+    const nextSubcategories = lists.flat();
+    setSubcategories(nextSubcategories);
+    return nextSubcategories;
+  }
+
   useEffect(() => {
     let active = true;
 
-    async function loadCatalog() {
-      const categoryResponse = await axios.get(`${apiBase}/api/categories/`, { timeout: 12000 });
-      const categoryRows = asRows(categoryResponse.data)
-        .map(normalizeCategory)
-        .filter((category) => category.id);
-
-      const productResponse = await axios
-        .get(`${apiBase}/api/products`, { timeout: 12000 })
-        .catch(() => ({ data: [] }));
-      const productCounts: Record<string, number> = {};
-      for (const product of asRows(productResponse.data)) {
-        const subcategoryId = String(product.subcategory_id ?? "");
-        if (!subcategoryId) continue;
-        productCounts[subcategoryId] = (productCounts[subcategoryId] ?? 0) + 1;
-      }
-
-      const lists = await Promise.all(
-        categoryRows.map(async (category) => {
-          try {
-            const response = await axios.get(`${apiBase}/api/subcategories/${category.id}`, {
-              timeout: 12000,
-            });
-            return asRows(response.data)
-              .map((row) => normalizeSubcategory(row, productCounts[String(row.id ?? "")] ?? 0))
-              .filter((item) => item.id);
-          } catch {
-            return [] as Subcategory[];
-          }
-        })
-      );
-
-      if (!active) return;
-      setCategories(categoryRows);
-      setSubcategories(lists.flat());
-      setSelectedId((current) =>
-        categoryRows.some((category) => category.id === current)
-          ? current
-          : categoryRows[0]?.id ?? ""
-      );
-    }
-
     setLoading(true);
     setLoadError("");
-    loadCatalog()
+    fetchCategories()
+      .then((categoryRows) => {
+        if (!active) return;
+        return fetchingSubcategories(categoryRows);
+      })
       .catch((error) => {
         if (active) setLoadError(errorMessage(error, "Could not load categories."));
       })
@@ -317,14 +326,8 @@ export default function SubcategoriesPage() {
 
     const categoryId = form.category_id || selectedId;
     setSaving(true);
-    axios.post(`${apiBase}/api/subcategories/${categoryId}`, formData).then((response) => {
-      const created = response.data;
-      if (created && typeof created === "object" && "id" in created) {
-        setSubcategories((current) => [
-          normalizeSubcategory(created as Record<string, unknown>, 0),
-          ...current,
-        ]);
-      }
+    axios.post(`${apiBase}/api/subcategories/${categoryId}`, formData).then(async () => {
+      await fetchingSubcategories();
       setSelectedId(categoryId);
       setPanel("subcategories");
       setEditorId(undefined);
@@ -353,11 +356,8 @@ export default function SubcategoriesPage() {
     if (imageFile) formData.append("image", imageFile);
 
     setSaving(true);
-    axios.put(`${apiBase}/api/subcategories/${editorId}`, formData).then((response) => {
-      const updated = response.data;
-      if (updated && typeof updated === "object" && "id" in updated) {
-        setSubcategories((current) => current.map((item) => item.id === editorId ? updated as Subcategory : item));
-      }
+    axios.put(`${apiBase}/api/subcategories/${editorId}`, formData).then(async () => {
+      await fetchingSubcategories();
       notify("success", `${name} updated.`);
     }).catch(() => {
       notify("error", `Failed to update ${name}.`);
@@ -374,11 +374,9 @@ export default function SubcategoriesPage() {
   }
 
   const handleDelete = (item: Subcategory) => {
-    axios.delete(`${apiBase}/api/subcategories/${item.id}`).then((response) => {
-      const deleted = response.data;
-      if (deleted && typeof deleted === "object" && "id" in deleted) {
-        setSubcategories((current) => current.filter((item) => item.id !== deleted.id));
-      }
+    axios.delete(`${apiBase}/api/subcategories/${item.id}`).then(async () => {
+      await fetchingSubcategories();
+      notify("success", `${item.name} deleted.`);
     })
     .catch(() => {
       notify("error", `Failed to delete ${item.name}.`);
@@ -387,11 +385,9 @@ export default function SubcategoriesPage() {
 
   function toggleStatus(item: Subcategory) {
     const status = !item.is_active;
-    axios.put(`${apiBase}/api/subcategories/${item.id}`, { is_active: status }).then((response) => {
-      const updated = response.data;
-      if (updated && typeof updated === "object" && "id" in updated) {
-        setSubcategories((current) => current.map((item) => item.id === updated.id ? updated as Subcategory : item));
-      }
+    axios.put(`${apiBase}/api/subcategories/${item.id}`, { is_active: status }).then(async () => {
+      await fetchingSubcategories();
+      notify("success", `${item.name} ${status ? "activated" : "deactivated"}.`);
     }).catch(() => {
       notify("error", `Failed to ${status ? "activate" : "deactivate"} ${item.name}.`);
     });

@@ -45,7 +45,7 @@ type ProductForm = {
 type Tab = "list" | "create" | "edit";
 
 const apiBase = process.env.NEXT_PUBLIC_API_URL;
-const units = ["pc", "pack", "g", "kg", "ml", "L", "dozen"];
+const units = ["pc", "pack", "gm", "kg", "ml", "L", "dozen"];
 
 const emptyForm: ProductForm = {
   name: "",

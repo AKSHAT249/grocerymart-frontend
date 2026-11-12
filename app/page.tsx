@@ -11,15 +11,19 @@ import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "@/lib/store";
 import { increment, decrement, incrementByAmount, decrementByAmount, reset } from "@/lib/features/counter/counterSlice";
 import Header from "@/components/Header";
+import Image from "next/image";
 interface Product {
   id: string;
   name: string;
   description: string;
-  category: string;
-  price: string;
-  image_url: string | null;
-  stock_quantity: number;
+  category_id: string;
+  mrp_price: string;
+  selling_price: string;
+  product_image_url: string | null;
+  unit: string;
+  net_quantity: string;
   is_available: boolean;
+  subcategory_id: string;
 }
 
 interface Category {
@@ -73,7 +77,7 @@ export default function Home() {
     for (const productKey in cart) {
       const product = allProducts.find((product) => product.id === productKey);
       if (product) {
-        pricing += parseInt(product.price) * (cart[productKey as keyof typeof cart] as number);
+        pricing += parseInt(product.selling_price) * (cart[productKey as keyof typeof cart] as number);
       }
     }
     setTotal(pricing);
@@ -85,7 +89,7 @@ export default function Home() {
       return;
     }
     const filteredData = allProducts.filter((product) => {
-      return product.category === (selectedCategory as any);
+      return product.category_id === (selectedCategory as any);
     });
     setFilteredProducts(filteredData);
   }, [selectedCategory])
@@ -113,9 +117,9 @@ export default function Home() {
           {
             id: product.id,
             name: product.name,
-            price: Number(product.price),
+            price: Number(product.selling_price),
             quantity,
-            image: product.image_url || undefined,
+            image: product.product_image_url || "",
           },
         ];
       }),
@@ -168,7 +172,7 @@ export default function Home() {
               key={item.id}
               id={item.id}
               name={item.name}
-              imageUrl={item.image_url}
+              imageUrl={item.image_url || ""}
             />
           ))}
         </div>
@@ -186,16 +190,14 @@ export default function Home() {
               key={product.id}
               className="rounded-2xl border border-gray-100 p-3 transition hover:border-gray-200 sm:p-4"
             >
-              {/* <div className={`flex aspect-square items-center justify-center rounded-xl text-6xl ${product.color}`}>
-                {product.emoji}
-              </div> */}
+              <img src={product.product_image_url || ""} alt={product.name} width={100} height={100} />
 
               <h3 className="mt-1 min-h-10 text-sm font-semibold leading-5">
                 {product.name}
               </h3>
 
               <div className="mt-3 flex items-center justify-between gap-2">
-                <span className="font-bold">₹{product.price}</span>
+                <span className="font-bold">₹{product.selling_price}</span>
 
                 {cart[product.id] ? (
                   <div className="flex items-center gap-2 rounded-lg bg-green-700 px-2 py-1.5 text-white">
