@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from "react";
 import axios from "axios";
-import { useRouter } from "next/navigation";
-
+import { useRouter, useSearchParams } from "next/navigation";
+import { toast } from "react-toastify";
 export default function AdminLoginPage() {
   const router = useRouter();
-
+  const searchParams = useSearchParams();
+ 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -16,8 +17,14 @@ export default function AdminLoginPage() {
     const token = localStorage.getItem("grocery_admin_token");
     if (token) {
       router.replace("/admin");
+      return;
     }
-  }, [router]);
+
+    if (searchParams.get("loggedOut") === "1") {
+      toast.success("Logged out successfully", { toastId: "admin-logout" });
+      router.replace("/admin/login");
+    }
+  }, [router, searchParams]);
 
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -35,6 +42,7 @@ export default function AdminLoginPage() {
 
       router.replace("/admin");
       router.refresh();
+      toast.success("Login successful");
 
     } catch (err: any) {
       console.log("error.........",err);

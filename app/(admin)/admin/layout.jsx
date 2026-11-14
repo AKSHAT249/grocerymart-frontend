@@ -17,6 +17,9 @@ export default function AdminLayout({ children }) {
     useEffect(() => {
         const token = localStorage.getItem("grocery_admin_token");
 
+        console.log("changes routeeeeee" )
+
+
         if (!token) {
             router.replace("/admin/login");
         } else {

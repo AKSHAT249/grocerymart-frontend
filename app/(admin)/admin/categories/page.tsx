@@ -1,9 +1,9 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import axios from "axios";
 import { ImageOff, LoaderCircle, Pencil, Search } from "lucide-react";
-
+import api from "@/utils/axios";
+import { AxiosError } from "axios";
 type Category = {
   id: string;
   name: string;
@@ -28,8 +28,8 @@ const emptyForm: CategoryForm = {
 
 const apiBase = process.env.NEXT_PUBLIC_API_URL;
 
-function errorMessage(error: unknown, fallback: string) {
-  if (axios.isAxiosError(error)) {
+function errorMessage(error: AxiosError<any, any>, fallback: string) {
+  if (error instanceof AxiosError) {
     const message = error.response?.data?.message;
     if (typeof message === "string" && message) return message;
     if (error.message === "Network Error") {
@@ -52,7 +52,7 @@ export default function CategoriesPage() {
   const [brokenImages, setBrokenImages] = useState<Record<string, boolean>>({});
 
   async function loadCategories() {
-    const response = await axios.get(`${apiBase}/api/categories/`);
+    const response = await api.get(`/api/categories/`);
     setCategories(response.data.data ?? []);
   }
 
@@ -115,10 +115,10 @@ export default function CategoriesPage() {
 
     try {
       if (editing) {
-        await axios.put(`${apiBase}/api/categories/${editing.id}`, payload);
+        await api.put(`/api/categories/${editing.id}`, payload);
         setNotice(`${payload.name} updated.`);
       } else {
-        await axios.post(`${apiBase}/api/categories`, payload);
+        await api.post(`/api/categories`, payload);
         setNotice(`${payload.name} added.`);
       }
 
@@ -127,7 +127,7 @@ export default function CategoriesPage() {
       setForm(emptyForm);
       setTab("list");
     } catch (error) {
-      setError(errorMessage(error, "Could not save the category."));
+      setError(errorMessage(error as AxiosError<any, any>, "Could not save the category."));
     } finally {
       setSaving(false);
     }

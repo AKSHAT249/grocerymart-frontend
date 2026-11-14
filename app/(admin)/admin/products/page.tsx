@@ -1,8 +1,9 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import axios from "axios";
+import { AxiosError } from "axios";
 import { ImageOff, LoaderCircle, Pencil, Search } from "lucide-react";
+import api from "@/utils/axios";
 
 type Category = {
   id: string;
@@ -87,7 +88,7 @@ function normalizeProduct(row: Record<string, unknown>): Product {
 }
 
 function errorMessage(error: unknown, fallback: string) {
-  if (axios.isAxiosError(error)) {
+  if (error instanceof AxiosError) {
     const message = error.response?.data?.error || error.response?.data?.message;
     if (typeof message === "string" && message) return message;
     if (error.message === "Network Error") {
@@ -126,7 +127,7 @@ export default function ProductsPage() {
   const [brokenImages, setBrokenImages] = useState<Record<string, boolean>>({});
 
   async function fetchProducts() {
-    const response = await axios.get(`${apiBase}/api/products`);
+    const response = await api.get(`/api/products`);
     setProducts(asRows(response.data).map(normalizeProduct).filter((product) => product.id));
   }
 
@@ -134,7 +135,7 @@ export default function ProductsPage() {
     let active = true;
 
     async function loadCatalog() {
-      const categoryResponse = await axios.get(`${apiBase}/api/categories/`);
+      const categoryResponse = await api.get(`/api/categories/`);
       const categoryRows = asRows(categoryResponse.data)
         .map((row) => ({ id: String(row.id ?? ""), name: String(row.name ?? "") }))
         .filter((category) => category.id);
@@ -142,7 +143,7 @@ export default function ProductsPage() {
       const subcategoryLists = await Promise.all(
         categoryRows.map(async (category) => {
           try {
-            const response = await axios.get(`${apiBase}/api/subcategories/${category.id}`);
+            const response = await api.get(`/api/subcategories/${category.id}`);
             return asRows(response.data).map((row) => ({
               id: String(row.id ?? ""),
               category_id: String(row.category_id ?? category.id),
@@ -289,7 +290,7 @@ export default function ProductsPage() {
     setError("");
     setNotice("");
     try {
-      await axios.post(`${apiBase}/api/products`, buildFormData());
+      await api.post(`/api/products`, buildFormData());
       await fetchProducts();
       setForm(emptyForm);
       setImageFile(null);
@@ -315,7 +316,7 @@ export default function ProductsPage() {
     setError("");
     setNotice("");
     try {
-      await axios.put(`${apiBase}/api/products/${editingId}`, buildFormData());
+      await api.put(`/api/products/${editingId}`, buildFormData());
       await fetchProducts();
       setNotice(`${form.name.trim()} updated.`);
       setTab("list");

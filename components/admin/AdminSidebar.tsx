@@ -15,7 +15,6 @@ import {
   List,
   Boxes,
 } from "lucide-react";
-
 const menuItems = [
   { name: "Dashboard", path: "/admin", icon: LayoutDashboard },
   { name: "Orders", path: "/admin/orders", icon: ShoppingBag },
@@ -46,13 +45,9 @@ export default function AdminSidebar({
     onClose();
   }, [pathname]);
 
-  const handleLogout = async () => {
-    try {
-      localStorage.removeItem("grocery_admin_token");
-    } finally {
-      router.replace("/admin/login");
-      router.refresh();
-    }
+  const handleLogout = () => {
+    localStorage.removeItem("grocery_admin_token");
+    router.replace("/admin/login?loggedOut=1");
   };
 
   return (

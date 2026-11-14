@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import axios from "axios";
+import { AxiosError } from "axios";
 import {
   ArrowLeft,
   ImageOff,
@@ -12,6 +12,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
+import api from "@/utils/axios";
 
 type Category = {
   id: string;
@@ -75,7 +76,7 @@ function normalizeSubcategory(row: Record<string, unknown>, productCount: number
 }
 
 function errorMessage(error: unknown, fallback: string) {
-  if (axios.isAxiosError(error)) {
+  if (error instanceof AxiosError) {
     const message = error.response?.data?.message;
     if (typeof message === "string" && message) return message;
     if (error.message === "Network Error") {
@@ -155,7 +156,7 @@ export default function SubcategoriesPage() {
   const [brokenImages, setBrokenImages] = useState<Record<string, boolean>>({});
 
   async function fetchCategories() {
-    const categoryResponse = await axios.get(`${apiBase}/api/categories/`, { timeout: 12000 });
+    const categoryResponse = await api.get(`/api/categories/`, { timeout: 12000 });
     const categoryRows = asRows(categoryResponse.data)
       .map(normalizeCategory)
       .filter((category) => category.id);
@@ -170,7 +171,7 @@ export default function SubcategoriesPage() {
   }
 
   async function fetchingSubcategories(categoryRows: Category[] = categories) {
-    const productResponse = await axios
+    const productResponse = await api
       .get(`${apiBase}/api/products`, { timeout: 12000 })
       .catch(() => ({ data: [] }));
     const productCounts: Record<string, number> = {};
@@ -183,7 +184,7 @@ export default function SubcategoriesPage() {
     const lists = await Promise.all(
       categoryRows.map(async (category) => {
         try {
-          const response = await axios.get(`${apiBase}/api/subcategories/${category.id}`, {
+          const response = await api.get(`/api/subcategories/${category.id}`, {
             timeout: 12000,
           });
           return asRows(response.data)
@@ -326,7 +327,7 @@ export default function SubcategoriesPage() {
 
     const categoryId = form.category_id || selectedId;
     setSaving(true);
-    axios.post(`${apiBase}/api/subcategories/${categoryId}`, formData).then(async () => {
+    api.post(`/api/subcategories/${categoryId}`, formData).then(async () => {
       await fetchingSubcategories();
       setSelectedId(categoryId);
       setPanel("subcategories");
@@ -356,7 +357,7 @@ export default function SubcategoriesPage() {
     if (imageFile) formData.append("image", imageFile);
 
     setSaving(true);
-    axios.put(`${apiBase}/api/subcategories/${editorId}`, formData).then(async () => {
+    api.put(`/api/subcategories/${editorId}`, formData).then(async () => {
       await fetchingSubcategories();
       notify("success", `${name} updated.`);
     }).catch(() => {
@@ -374,7 +375,7 @@ export default function SubcategoriesPage() {
   }
 
   const handleDelete = (item: Subcategory) => {
-    axios.delete(`${apiBase}/api/subcategories/${item.id}`).then(async () => {
+    api.delete(`/api/subcategories/${item.id}`).then(async () => {
       await fetchingSubcategories();
       notify("success", `${item.name} deleted.`);
     })
@@ -385,7 +386,7 @@ export default function SubcategoriesPage() {
 
   function toggleStatus(item: Subcategory) {
     const status = !item.is_active;
-    axios.put(`${apiBase}/api/subcategories/${item.id}`, { is_active: status }).then(async () => {
+    api.put(`/api/subcategories/${item.id}`, { is_active: status }).then(async () => {
       await fetchingSubcategories();
       notify("success", `${item.name} ${status ? "activated" : "deactivated"}.`);
     }).catch(() => {
