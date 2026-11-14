@@ -7,6 +7,7 @@ import { MapPin, Minus, Plus, ShoppingBasket, X } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "@/lib/store";
 import { decreaseQuantity, increaseQuantity } from "@/lib/features/cart/cartSlice";
+import LoginComponent from "@/components/LoginComponent";
 
 const formatPrice = (price: number) =>
   `₹${price.toLocaleString("en-IN", {
@@ -17,6 +18,8 @@ const formatPrice = (price: number) =>
 const Header = () => {
   const dispatch = useDispatch();
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [isLoginOpen, setIsLoginOpen] = useState(false);
+  const [mobile, setMobile] = useState("");
   const cart = useSelector((state: RootState) => state.cart.items);
   const cartCount = cart.reduce((total, item) => total + item.quantity, 0);
   const subtotal = cart.reduce((total, item) => total + item.price * item.quantity, 0);
@@ -42,6 +45,14 @@ const Header = () => {
             <MapPin size={17} className="shrink-0 text-green-600" />
             <span className="truncate">Everyday essentials, near you</span>
           </div>
+
+          <button
+            type="button"
+            onClick={() => setIsLoginOpen(true)}
+            className="shrink-0 rounded-full border border-gray-200 bg-gray-50 px-4 py-2 text-sm font-semibold text-gray-800 hover:bg-gray-100"
+          >
+            {mobile ? `+91 ${mobile}` : "Login"}
+          </button>
 
           <button
             type="button"
@@ -155,6 +166,15 @@ const Header = () => {
           </Link>
         </div>
       </aside>
+
+      <LoginComponent
+        open={isLoginOpen}
+        onClose={() => setIsLoginOpen(false)}
+        onContinue={(number) => {
+          setMobile(number);
+          setIsLoginOpen(false);
+        }}
+      />
     </>
   );
 };
