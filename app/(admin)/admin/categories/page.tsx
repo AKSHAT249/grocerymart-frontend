@@ -48,6 +48,7 @@ export default function CategoriesPage() {
   const [notice, setNotice] = useState("");
   const [query, setQuery] = useState("");
   const [form, setForm] = useState<CategoryForm>(emptyForm);
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [editing, setEditing] = useState<Category | null>(null);
   const [brokenImages, setBrokenImages] = useState<Record<string, boolean>>({});
 
@@ -83,6 +84,7 @@ export default function CategoriesPage() {
   function openCreate() {
     setEditing(null);
     setForm(emptyForm);
+    setImageFile(null);
     setError("");
     setTab("form");
   }
@@ -95,36 +97,54 @@ export default function CategoriesPage() {
       image_url: category.image_url ?? "",
       is_active: category.is_active !== false,
     });
+    setImageFile(null);
     setError("");
     setNotice("");
     setTab("form");
   }
 
+  function readImage(file: File) {
+    const allowed = ["image/png", "image/jpeg", "image/webp"];
+    if (!allowed.includes(file.type)) {
+      setError("Use a PNG, JPG, or WEBP image.");
+      return;
+    }
+    setError("");
+    setImageFile(file);
+    setForm((current) => ({ ...current, image_url: URL.createObjectURL(file) }));
+  }
+
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
+    const name = form.name.trim();
+    if (!editing && !imageFile) {
+      setError("Add a category image.");
+      return;
+    }
+
     setSaving(true);
     setError("");
     setNotice("");
 
-    const payload = {
-      name: form.name.trim(),
-      description: form.description.trim(),
-      image_url: form.image_url.trim(),
-      is_active: form.is_active,
-    };
+    const formData = new FormData();
+    formData.append("name", name);
+    formData.append("description", form.description.trim());
+    formData.append("is_active", form.is_active ? "true" : "false");
+    if (imageFile) formData.append("image", imageFile);
 
     try {
       if (editing) {
-        await api.put(`/api/categories/${editing.id}`, payload);
-        setNotice(`${payload.name} updated.`);
+        await api.put(`/api/categories/${editing.id}`, formData);
+        setNotice(`${name} updated.`);
       } else {
-        await api.post(`/api/categories`, payload);
-        setNotice(`${payload.name} added.`);
+        await api.post(`/api/categories`, formData);
+        setNotice(`${name} added.`);
       }
 
       await loadCategories();
       setEditing(null);
       setForm(emptyForm);
+      setImageFile(null);
       setTab("list");
     } catch (error) {
       setError(errorMessage(error as AxiosError<any, any>, "Could not save the category."));
@@ -314,20 +334,22 @@ export default function CategoriesPage() {
             </label>
 
             <label className="block text-sm font-medium">
-              Image URL
+              Image
               <input
-                required
-                type="url"
-                value={form.image_url}
-                onChange={(event) =>
-                  setForm((current) => ({
-                    ...current,
-                    image_url: event.target.value,
-                  }))
-                }
-                placeholder="https://"
+                required={!editing}
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (file) readImage(file);
+                }}
                 className="mt-2 w-full rounded-xl border border-gray-200 px-3 py-3 text-sm outline-none focus:border-green-600"
               />
+              <span className="mt-1 block text-xs font-normal text-gray-500">
+                {editing
+                  ? "Choose a new image to replace the current one, or leave this empty."
+                  : "PNG, JPG, or WEBP."}
+              </span>
             </label>
 
             <label className="flex items-center gap-3 text-sm font-medium">
@@ -365,6 +387,7 @@ export default function CategoriesPage() {
                 onClick={() => {
                   setEditing(null);
                   setForm(emptyForm);
+                  setImageFile(null);
                   setError("");
                   setTab("list");
                 }}
