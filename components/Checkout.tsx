@@ -1,8 +1,13 @@
 
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Minus, Plus } from "lucide-react";
+import DeliveryAddress, {
+  emptyDelivery,
+  isDeliveryComplete,
+  type DeliveryDetails,
+} from "@/components/DeliveryAddress";
 
 type CartItem = {
   id: string;
@@ -34,6 +39,8 @@ export default function Checkout({
     [cartItems]
   );
 
+  const [delivery, setDelivery] = useState<DeliveryDetails>(emptyDelivery);
+  const [deliveryError, setDeliveryError] = useState("");
   const shippingCharges = 0;
   const handlingCharges = 0;
   const grandTotal = subtotal + shippingCharges + handlingCharges;
@@ -81,8 +88,16 @@ export default function Checkout({
         </p>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Cart products */}
-          <section className="lg:col-span-2 bg-white rounded-2xl border border-gray-200 p-5 sm:p-7">
+          <div className="lg:col-span-2 space-y-6">
+          <DeliveryAddress
+            value={delivery}
+            onChange={(next) => {
+              setDelivery(next);
+              setDeliveryError("");
+            }}
+          />
+          {deliveryError && <p className="text-sm text-red-600">{deliveryError}</p>}
+          <section className="bg-white rounded-2xl border border-gray-200 p-5 sm:p-7">
             <h2 className="text-xl font-semibold mb-6">
               Your Items ({cartItems.reduce(
                 (total, item) => total + item.quantity,
@@ -145,6 +160,7 @@ export default function Checkout({
               ))}
             </div>
           </section>
+          </div>
 
           {/* Bill summary */}
           <aside className="bg-white rounded-2xl border border-gray-200 p-6 h-fit">
@@ -195,7 +211,13 @@ export default function Checkout({
             </div>
 
             <button
-              onClick={onPlaceOrder}
+              onClick={() => {
+                if (!isDeliveryComplete(delivery)) {
+                  setDeliveryError("Add the receiver name, phone, flat number, and tower.");
+                  return;
+                }
+                onPlaceOrder();
+              }}
               className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold rounded-xl py-3.5 mt-6 transition-colors"
             >
               Place an Order · {formatPrice(grandTotal)}

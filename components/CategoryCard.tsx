@@ -9,7 +9,7 @@ type CategoryCardProps = {
 export default function CategoryCard({ id, name, imageUrl }: CategoryCardProps) {
   return (
     <Link href={`/category/${id}`} className="flex flex-col items-center gap-2">
-      <div className="flex aspect-square w-full items-center justify-center rounded-2xl bg-[#f3f3f3] p-3">
+      <div className="flex aspect-square w-full items-center justify-center rounded-2xl p-3">
         {imageUrl ? (
           <img
             src={imageUrl}

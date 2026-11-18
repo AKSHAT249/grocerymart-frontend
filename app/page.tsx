@@ -4,7 +4,8 @@
 import { useMemo, useState } from "react";
 import { useEffect } from "react";
 import axios from "axios";
-import { Search, ShoppingBasket, MapPin, Plus, Minus } from "lucide-react";
+import { Search, ShoppingBasket, MapPin } from "lucide-react";
+import ItemCard from "@/components/ItemCard";
 import Checkout from "@/components/Checkout";
 import CategoryCard from "@/components/CategoryCard";
 import { useDispatch, useSelector } from "react-redux";
@@ -43,6 +44,7 @@ export default function Home() {
   const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [allCategories, setAllCategories] = useState<Category[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
+  console.log(filteredProducts);
   const [cartCount, setCartCount] = useState(0);
   const [total, setTotal] = useState<number>(0);
 
@@ -131,7 +133,7 @@ export default function Home() {
       <Checkout
         cartItems={cartItems}
         onBack={() => setShowCheckout(false)}
-        onPlaceOrder={() => alert("Order placed!")}
+        onPlaceOrder={() => alert("Order placed! 111111111")}
         onChangeQuantity={changeQuantity}
       />
     );
@@ -186,47 +188,13 @@ export default function Home() {
 
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-5 lg:grid-cols-4 xl:grid-cols-5">
           {filteredProducts.map((product) => (
-            <article
+            <ItemCard
               key={product.id}
-              className="rounded-2xl border border-gray-100 p-3 transition hover:border-gray-200 sm:p-4"
-            >
-              <img src={product.product_image_url || ""} alt={product.name} width={100} height={100} />
-
-              <h3 className="mt-1 min-h-10 text-sm font-semibold leading-5">
-                {product.name}
-              </h3>
-
-              <div className="mt-3 flex items-center justify-between gap-2">
-                <span className="font-bold">₹{product.selling_price}</span>
-
-                {cart[product.id] ? (
-                  <div className="flex items-center gap-2 rounded-lg bg-green-700 px-2 py-1.5 text-white">
-                    <button
-                      aria-label={`Remove one ${product.name}`}
-                      onClick={() => changeQuantity(product.id, -1)}
-                    >
-                      <Minus size={15} />
-                    </button>
-                    <span className="text-sm font-semibold">
-                      {cart[product.id]}
-                    </span>
-                    <button
-                      aria-label={`Add one ${product.name}`}
-                      onClick={() => changeQuantity(product.id, 1)}
-                    >
-                      <Plus size={15} />
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => changeQuantity(product.id, 1)}
-                    className="rounded-lg border border-green-700 px-3 py-1.5 text-sm font-semibold text-green-700 hover:bg-green-50"
-                  >
-                    ADD
-                  </button>
-                )}
-              </div>
-            </article>
+              product={product}
+              quantity={cart[product.id] || 0}
+              onAdd={() => changeQuantity(product.id, 1)}
+              onRemove={() => changeQuantity(product.id, -1)}
+            />
           ))}
         </div>
 

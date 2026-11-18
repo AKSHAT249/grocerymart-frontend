@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import axios from "axios";
-import { Minus, Plus } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
+import ItemCard from "@/components/ItemCard";
 import { addToCart, decreaseQuantity } from "@/lib/features/cart/cartSlice";
 import { RootState } from "@/lib/store";
 
@@ -31,6 +31,8 @@ type Product = {
   price?: string;
   product_image_url?: string | null;
   image_url?: string | null;
+  unit?: string | null;
+  net_quantity?: string | number | null;
   subcategory_id?: string;
 };
 
@@ -225,73 +227,24 @@ export default function CategoryDetails() {
                   const price = product.selling_price || product.price;
                   const quantity =
                     cart.find((item) => item.id === product.id)?.quantity ?? 0;
-                  const addItem = () =>
-                    dispatch(
-                      addToCart({
-                        id: product.id,
-                        name: product.name,
-                        price: Number(price),
-                        image: image || undefined,
-                        quantity: 1,
-                      })
-                    );
                   return (
-                    <article
+                    <ItemCard
                       key={product.id}
-                      className="rounded-2xl border border-gray-100 bg-white p-3"
-                    >
-                      <div className="flex aspect-square items-center justify-center rounded-xl bg-[#f3f3f3]">
-                        {image ? (
-                          <img
-                            src={image}
-                            alt={product.name}
-                            className="h-4/5 w-4/5 object-contain"
-                          />
-                        ) : (
-                          <span className="text-3xl" aria-hidden>
-                            🛒
-                          </span>
-                        )}
-                      </div>
-                      <h3 className="mt-3 line-clamp-2 min-h-10 text-sm font-semibold leading-5">
-                        {product.name}
-                      </h3>
-                      <div className="mt-3 flex items-center justify-between gap-2">
-                        {price && (
-                          <p className="font-bold">₹{Number(price).toFixed(2)}</p>
-                        )}
-                        {quantity > 0 ? (
-                          <div className="ml-auto flex items-center gap-2 rounded-lg bg-green-700 px-2 py-1.5 text-white">
-                            <button
-                              type="button"
-                              aria-label={`Remove one ${product.name}`}
-                              onClick={() => dispatch(decreaseQuantity(product.id))}
-                            >
-                              <Minus size={15} />
-                            </button>
-                            <span className="min-w-4 text-center text-sm font-semibold">
-                              {quantity}
-                            </span>
-                            <button
-                              type="button"
-                              aria-label={`Add one ${product.name}`}
-                              onClick={addItem}
-                            >
-                              <Plus size={15} />
-                            </button>
-                          </div>
-                        ) : (
-                          <button
-                            type="button"
-                            aria-label={`Add ${product.name}`}
-                            onClick={addItem}
-                            className="ml-auto flex h-8 w-8 items-center justify-center rounded-lg border border-green-700 text-green-700 hover:bg-green-50"
-                          >
-                            <Plus size={16} />
-                          </button>
-                        )}
-                      </div>
-                    </article>
+                      product={product}
+                      quantity={quantity}
+                      onAdd={() =>
+                        dispatch(
+                          addToCart({
+                            id: product.id,
+                            name: product.name,
+                            price: Number(price),
+                            image: image || undefined,
+                            quantity: 1,
+                          })
+                        )
+                      }
+                      onRemove={() => dispatch(decreaseQuantity(product.id))}
+                    />
                   );
                 })}
               </div>

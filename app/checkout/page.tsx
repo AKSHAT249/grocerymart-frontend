@@ -1,12 +1,18 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Minus, Plus } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "@/lib/store";
 import { clearCart, decreaseQuantity, increaseQuantity } from "@/lib/features/cart/cartSlice";
+import DeliveryAddress, {
+  DELIVERY_LOCATION,
+  emptyDelivery,
+  isDeliveryComplete,
+  type DeliveryDetails,
+} from "@/components/DeliveryAddress";
 
 const shippingCharges = 0;
 const handlingCharges = 0;
@@ -25,16 +31,28 @@ export default function CheckoutPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const orderPlaced = searchParams.get("placed") === "1";
+  const [delivery, setDelivery] = useState<DeliveryDetails>(emptyDelivery);
+  const [deliveryError, setDeliveryError] = useState("");
   const cart = useSelector((state: RootState) => state.cart.items);
   const itemCount = cart.reduce((total, item) => total + item.quantity, 0);
   const subtotal = cart.reduce((total, item) => total + item.price * item.quantity, 0);
   const grandTotal = subtotal + shippingCharges + handlingCharges;
 
   const placeOrder = () => {
+    if (!isDeliveryComplete(delivery)) {
+      setDeliveryError("Add the receiver name, phone, flat number, and tower.");
+      return;
+    }
+
     const message = [
       "New grocery order",
       "",
       ...cart.map((item) => `• ${item.name} x ${item.quantity}`),
+      "",
+      `Deliver to: ${delivery.receiverName.trim()}`,
+      `Phone: +91 ${delivery.receiverPhone}`,
+      `Flat ${delivery.flatNumber.trim()}, Tower ${delivery.tower.trim()}`,
+      DELIVERY_LOCATION,
       "",
       `Total to pay: ${formatPrice(grandTotal)}`,
     ].join("\n");
@@ -96,7 +114,18 @@ export default function CheckoutPage() {
         <p className="mt-2 text-gray-500">Review your groceries and the final bill.</p>
 
         <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-3">
-          <section className="rounded-2xl border border-gray-200 bg-white p-5 sm:p-7 lg:col-span-2">
+          <div className="space-y-6 lg:col-span-2">
+            <DeliveryAddress
+              value={delivery}
+              onChange={(next) => {
+                setDelivery(next);
+                setDeliveryError("");
+              }}
+            />
+            {deliveryError && (
+              <p className="text-sm text-red-600">{deliveryError}</p>
+            )}
+          <section className="rounded-2xl border border-gray-200 bg-white p-5 sm:p-7">
             <h2 className="mb-6 text-xl font-semibold">Your items ({itemCount})</h2>
             <div className="divide-y divide-gray-100">
               {cart.map((item) => (
@@ -144,6 +173,7 @@ export default function CheckoutPage() {
               ))}
             </div>
           </section>
+          </div>
 
           <aside className="h-fit rounded-2xl border border-gray-200 bg-white p-6">
             <h2 className="mb-6 text-xl font-semibold">Bill details</h2>
