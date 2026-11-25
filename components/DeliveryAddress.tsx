@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { SignInButton, useAuth, useUser } from "@clerk/nextjs";
 import axios from "axios";
-import { MapPin, Plus, Trash2 } from "lucide-react";
+import { Loader2, MapPin, Plus, Trash2 } from "lucide-react";
 
 export const DELIVERY_LOCATION = "14th Avenue, Gaur City 2";
 
@@ -95,9 +95,11 @@ export default function DeliveryAddress({ value, onChange }: DeliveryAddressProp
   const { isLoaded, isSignedIn, getToken } = useAuth();
   const { user } = useUser();
   const [addresses, setAddresses] = useState<SavedAddress[]>([]);
+  console.log("addresses", addresses);
   const [selectedId, setSelectedId] = useState("");
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [pendingId, setPendingId] = useState("");
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState<DraftAddress>(emptyDraft);
   const [formError, setFormError] = useState("");
@@ -193,7 +195,17 @@ export default function DeliveryAddress({ value, onChange }: DeliveryAddressProp
     setFormError("");
     try {
       const headers = await authHeaders();
-      const response = await axios.post(`${apiBase}/api/user-addresses`, draft, { headers });
+      const response = await axios.post(
+        `${apiBase}/api/user-addresses`,
+        {
+          recipient_name: draft.recipient_name.trim(),
+          recipient_phone: draft.recipient_phone,
+          recipient_flat_number: draft.recipient_flat_number.trim(),
+          recipient_tower_name: draft.recipient_tower_name.trim(),
+          is_default: draft.is_default,
+        },
+        { headers }
+      );
       const savedRaw = (response.data?.address ?? response.data?.data) as
         | (SavedAddress & { recipient_number?: string })
         | undefined;
@@ -209,8 +221,10 @@ export default function DeliveryAddress({ value, onChange }: DeliveryAddressProp
   }
 
   async function makeDefault(address: SavedAddress) {
+    setPendingId(address.id);
+    setLoadError("");
     try {
-      await axios.patch(
+      await axios.put(
         `${apiBase}/api/user-addresses/${address.id}/default`,
         {},
         { headers: await authHeaders() }
@@ -218,10 +232,14 @@ export default function DeliveryAddress({ value, onChange }: DeliveryAddressProp
       await loadAddresses(address.id);
     } catch (error) {
       setLoadError(errorMessage(error));
+    } finally {
+      setPendingId("");
     }
   }
 
   async function removeAddress(address: SavedAddress) {
+    setPendingId(address.id);
+    setLoadError("");
     try {
       await axios.delete(`${apiBase}/api/user-addresses/${address.id}`, {
         headers: await authHeaders(),
@@ -229,6 +247,8 @@ export default function DeliveryAddress({ value, onChange }: DeliveryAddressProp
       await loadAddresses(selectedId === address.id ? undefined : selectedId);
     } catch (error) {
       setLoadError(errorMessage(error));
+    } finally {
+      setPendingId("");
     }
   }
 
@@ -276,7 +296,12 @@ export default function DeliveryAddress({ value, onChange }: DeliveryAddressProp
 
       {isSignedIn && (
         <div className="mt-4 space-y-3">
-          {loading && <p className="text-sm text-gray-500">Loading saved addresses…</p>}
+          {loading && (
+            <p className="flex items-center gap-2 text-sm text-gray-500">
+              <Loader2 size={16} className="animate-spin text-green-700" />
+              Loading saved addresses…
+            </p>
+          )}
           {loadError && <p className="text-sm text-red-600">{loadError}</p>}
 
           {!loading && addresses.length === 0 && !adding && (
@@ -320,23 +345,34 @@ export default function DeliveryAddress({ value, onChange }: DeliveryAddressProp
                   </span>
                 </button>
                 <div className="mt-3 flex gap-4 pl-7 text-sm font-semibold">
-                  {!address.is_default && (
-                    <button
-                      type="button"
-                      onClick={() => makeDefault(address)}
-                      className="text-green-700"
-                    >
-                      Make default
-                    </button>
+                  {pendingId === address.id ? (
+                    <span className="inline-flex items-center gap-1 text-gray-500">
+                      <Loader2 size={14} className="animate-spin text-green-700" />
+                      Please wait…
+                    </span>
+                  ) : (
+                    <>
+                      {!address.is_default && (
+                        <button
+                          type="button"
+                          onClick={() => makeDefault(address)}
+                          disabled={Boolean(pendingId) || saving}
+                          className="text-green-700 disabled:opacity-60"
+                        >
+                          Make default
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => removeAddress(address)}
+                        disabled={Boolean(pendingId) || saving}
+                        className="inline-flex items-center gap-1 text-gray-500 disabled:opacity-60"
+                      >
+                        <Trash2 size={14} />
+                        Remove
+                      </button>
+                    </>
                   )}
-                  <button
-                    type="button"
-                    onClick={() => removeAddress(address)}
-                    className="inline-flex items-center gap-1 text-gray-500"
-                  >
-                    <Trash2 size={14} />
-                    Remove
-                  </button>
                 </div>
               </div>
             );
@@ -349,6 +385,7 @@ export default function DeliveryAddress({ value, onChange }: DeliveryAddressProp
                 <label className="block text-sm font-medium text-gray-700">
                   Receiver name
                   <input
+                    disabled={saving}
                     value={draft.recipient_name}
                     onChange={(event) =>
                       setDraft((current) => ({ ...current, recipient_name: event.target.value }))
@@ -362,6 +399,7 @@ export default function DeliveryAddress({ value, onChange }: DeliveryAddressProp
                   <span className="mt-1.5 flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2.5 focus-within:border-green-700">
                     <span className="text-sm text-gray-500">+91</span>
                     <input
+                      disabled={saving}
                       type="tel"
                       inputMode="numeric"
                       autoComplete="tel"
@@ -381,6 +419,7 @@ export default function DeliveryAddress({ value, onChange }: DeliveryAddressProp
                 <label className="block text-sm font-medium text-gray-700">
                   Flat number
                   <input
+                    disabled={saving}
                     value={draft.recipient_flat_number}
                     onChange={(event) =>
                       setDraft((current) => ({ ...current, recipient_flat_number: event.target.value }))
@@ -392,6 +431,7 @@ export default function DeliveryAddress({ value, onChange }: DeliveryAddressProp
                 <label className="block text-sm font-medium text-gray-700">
                   Tower
                   <input
+                    disabled={saving}
                     value={draft.recipient_tower_name}
                     onChange={(event) =>
                       setDraft((current) => ({ ...current, recipient_tower_name: event.target.value }))
@@ -404,6 +444,7 @@ export default function DeliveryAddress({ value, onChange }: DeliveryAddressProp
               <label className="mt-3 flex items-center gap-2 text-sm text-gray-700">
                 <input
                   type="checkbox"
+                  disabled={saving}
                   checked={draft.is_default}
                   onChange={(event) =>
                     setDraft((current) => ({ ...current, is_default: event.target.checked }))
@@ -418,14 +459,16 @@ export default function DeliveryAddress({ value, onChange }: DeliveryAddressProp
                   type="button"
                   onClick={saveAddress}
                   disabled={saving}
-                  className="rounded-xl bg-green-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-green-800 disabled:opacity-60"
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-green-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-green-800 disabled:opacity-60"
                 >
+                  {saving && <Loader2 size={16} className="animate-spin" />}
                   {saving ? "Saving…" : "Save address"}
                 </button>
                 <button
                   type="button"
                   onClick={() => setAdding(false)}
-                  className="rounded-xl px-4 py-2.5 text-sm font-semibold text-gray-600"
+                  disabled={saving}
+                  className="rounded-xl px-4 py-2.5 text-sm font-semibold text-gray-600 disabled:opacity-60"
                 >
                   Cancel
                 </button>
