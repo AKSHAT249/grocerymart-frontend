@@ -13,6 +13,7 @@ import DeliveryAddress, {
   isDeliveryComplete,
   type DeliveryDetails,
 } from "@/components/DeliveryAddress";
+import Header from "@/components/Header";
 
 const shippingCharges = 0;
 const handlingCharges = 0;
@@ -70,6 +71,8 @@ export default function CheckoutPage() {
 
   if (orderPlaced && cart.length === 0) {
     return (
+      <>
+      <Header />
       <main className="flex min-h-[70vh] flex-col items-center justify-center px-6 text-center text-gray-900">
         <p className="text-5xl">✅</p>
         <h1 className="mt-4 text-2xl font-bold">Order placed</h1>
@@ -83,11 +86,14 @@ export default function CheckoutPage() {
           Back to store
         </Link>
       </main>
+      </>
     );
   }
 
   if (cart.length === 0) {
     return (
+      <>
+      <Header />
       <main className="flex min-h-[70vh] flex-col items-center justify-center px-6 text-center text-gray-900">
         <p className="text-5xl">🛒</p>
         <h1 className="mt-4 text-2xl font-bold">Your basket is empty</h1>
@@ -101,10 +107,13 @@ export default function CheckoutPage() {
           Back to store
         </Link>
       </main>
+      </>
     );
   }
 
   return (
+    <>
+    <Header />
     <main className="min-h-screen bg-gray-50 px-4 py-8 text-gray-900 sm:px-6">
       <div className="mx-auto max-w-6xl">
         <Link href="/" className="text-sm font-semibold text-green-700">
@@ -211,5 +220,6 @@ export default function CheckoutPage() {
         </div>
       </div>
     </main>
+    </>
   );
 }

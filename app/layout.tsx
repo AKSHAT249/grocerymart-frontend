@@ -5,6 +5,7 @@ import "./globals.css";
 import StoreProvider from "@/lib/StoreProvider";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { ClerkProvider } from "@clerk/nextjs";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -29,10 +30,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="min-h-full flex flex-col">
         <Suspense fallback={null}>
-          <StoreProvider>
+          <ClerkProvider>
+            <StoreProvider>
             <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} newestOnTop={false} closeOnClick rtl={false} pauseOnFocusLoss draggable pauseOnHover />
             {children}
-          </StoreProvider>
+            </StoreProvider>
+          </ClerkProvider>
         </Suspense>
       </body>
     </html>

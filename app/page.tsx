@@ -4,7 +4,7 @@
 import { useMemo, useState } from "react";
 import { useEffect } from "react";
 import axios from "axios";
-import { Search, ShoppingBasket, MapPin } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 import ItemCard from "@/components/ItemCard";
 import Checkout from "@/components/Checkout";
 import CategoryCard from "@/components/CategoryCard";
@@ -37,8 +37,8 @@ interface Category {
 
 export default function Home() {
   const dispatch = useDispatch();
+  const searchParams = useSearchParams();
   const [search, setSearch] = useState("");
-  const [selectedCategory] = useState<string>("All");
   const [cart, setCart] = useState<Record<string, number>>({});
   const [showCheckout, setShowCheckout] = useState(false);
   const [allProducts, setAllProducts] = useState<Product[]>([]);
@@ -86,15 +86,20 @@ export default function Home() {
   }, [cart])
 
   useEffect(() => {
-    if((selectedCategory as unknown as string) === "All"){
+    const fromUrl = searchParams.get("search");
+    if (fromUrl) setSearch(fromUrl);
+  }, [searchParams]);
+
+  useEffect(() => {
+    const term = search.trim().toLowerCase();
+    if (!term) {
       setFilteredProducts(allProducts);
       return;
     }
-    const filteredData = allProducts.filter((product) => {
-      return product.category_id === (selectedCategory as any);
-    });
-    setFilteredProducts(filteredData);
-  }, [selectedCategory])
+    setFilteredProducts(
+      allProducts.filter((product) => product.name.toLowerCase().includes(term))
+    );
+  }, [search, allProducts]);
 
   function changeQuantity(id: string, amount: number) {
     setCart((current: { [key: string]: number }) => {
@@ -141,7 +146,7 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-white pb-28 text-gray-900">
-      <Header />
+      <Header search={search} onSearch={setSearch} />
 
       <section className="mx-auto max-w-7xl px-4 pt-8 sm:px-6 sm:pt-12">
         <p className="mb-2 text-sm font-semibold text-green-700">
@@ -154,20 +159,12 @@ export default function Home() {
           The things you need, from your local store.
         </p>
 
-        <div className="mt-7 flex max-w-xl items-center gap-3 rounded-xl border border-gray-200 px-4 py-3 focus-within:border-green-600">
-          <Search size={20} className="shrink-0 text-gray-400" />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search milk, snacks, household items..."
-            className="w-full bg-transparent text-sm outline-none"
-          />
-        </div>
       </section>
 
 
 
       <section className="mx-auto max-w-7xl px-4 pt-8 sm:px-6">
+        {!search.trim() && (
         <div className="grid grid-cols-3 gap-x-3 gap-y-5 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7">
           {allCategories.map((item) => (
             <CategoryCard
@@ -178,6 +175,7 @@ export default function Home() {
             />
           ))}
         </div>
+        )}
 
         <div className="mb-5 mt-5 flex items-center justify-between">
           <h2 className="text-xl font-bold">Popular essentials</h2>

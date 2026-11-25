@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useState } from "react";
-import { MapPin, Minus, Plus, ShoppingBasket, X } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { MapPin, Minus, Plus, Search, ShoppingBasket, UserRound, X } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
+import { Show, SignInButton, UserButton } from "@clerk/nextjs";
 import { RootState } from "@/lib/store";
 import { decreaseQuantity, increaseQuantity } from "@/lib/features/cart/cartSlice";
-import LoginComponent from "@/components/LoginComponent";
 
 const formatPrice = (price: number) =>
   `₹${price.toLocaleString("en-IN", {
@@ -15,14 +15,34 @@ const formatPrice = (price: number) =>
     maximumFractionDigits: 2,
   })}`;
 
-const Header = () => {
+type HeaderProps = {
+  search?: string;
+  onSearch?: (value: string) => void;
+};
+
+const Header = ({ search, onSearch }: HeaderProps) => {
   const dispatch = useDispatch();
+  const router = useRouter();
   const [isCartOpen, setIsCartOpen] = useState(false);
-  const [isLoginOpen, setIsLoginOpen] = useState(false);
-  const [mobile, setMobile] = useState("");
+  const [localSearch, setLocalSearch] = useState(search ?? "");
+  const userEditedSearch = useRef(false);
   const cart = useSelector((state: RootState) => state.cart.items);
   const cartCount = cart.reduce((total, item) => total + item.quantity, 0);
   const subtotal = cart.reduce((total, item) => total + item.price * item.quantity, 0);
+
+  useEffect(() => {
+    if (search !== undefined) setLocalSearch(search);
+  }, [search]);
+
+  useEffect(() => {
+    if (onSearch || !userEditedSearch.current) return;
+    const trimmed = localSearch.trim();
+    if (!trimmed) return;
+    const timer = window.setTimeout(() => {
+      router.push(`/?search=${encodeURIComponent(trimmed)}`);
+    }, 400);
+    return () => window.clearTimeout(timer);
+  }, [localSearch, onSearch, router]);
 
   useEffect(() => {
     if (!isCartOpen) return;
@@ -35,33 +55,70 @@ const Header = () => {
 
   return (
     <>
-      <header className="sticky top-0 z-20 w-full border-b border-gray-100 bg-white text-gray-900 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
-          <a href="/" className="shrink-0 text-xl font-black tracking-tight text-gray-900">
-            daily<span className="text-green-600">basket.</span>
-          </a>
-
-          <div className="hidden min-w-0 items-center gap-2 text-sm text-gray-500 sm:flex">
-            <MapPin size={17} className="shrink-0 text-green-600" />
-            <span className="truncate">Everyday essentials, near you</span>
+      <header className="sticky top-0 z-20 w-full border-b border-gray-100 bg-white text-gray-900">
+        <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3 sm:gap-6 sm:px-6">
+          <div className="flex shrink-0 items-center gap-3">
+            <a href="/" className="text-xl font-black tracking-tight text-green-700">
+              dailybasket
+            </a>
+            <div className="hidden min-w-0 sm:block">
+              <p className="text-sm font-semibold text-green-700">Everyday essentials</p>
+              <p className="flex items-center gap-1 text-xs text-gray-500">
+                <MapPin size={13} className="shrink-0" />
+                <span className="truncate">14th Avenue, Gaur City 2</span>
+              </p>
+            </div>
           </div>
 
-          {/* <button
-            type="button"
-            onClick={() => setIsLoginOpen(true)}
-            className="shrink-0 rounded-full border border-gray-200 bg-gray-50 px-4 py-2 text-sm font-semibold text-gray-800 hover:bg-gray-100"
-          >
-            {mobile ? `+91 ${mobile}` : "Login"}
-          </button> */}
+          <label className="flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 focus-within:border-green-600">
+            <Search size={18} className="shrink-0 text-gray-400" />
+            <input
+              value={onSearch ? search ?? "" : localSearch}
+              onChange={(event) => {
+                const value = event.target.value;
+                if (onSearch) onSearch(value);
+                else {
+                  userEditedSearch.current = true;
+                  setLocalSearch(value);
+                }
+              }}
+              placeholder="Search milk, snacks, household items..."
+              className="w-full bg-transparent text-sm outline-none"
+            />
+          </label>
 
-          <button
-            type="button"
-            onClick={() => setIsCartOpen(true)}
-            className="flex shrink-0 items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-3 py-2 text-sm font-medium text-gray-800 hover:bg-gray-100"
-          >
-            <ShoppingBasket size={18} className="text-green-700" />
-            <span>{cartCount} items</span>
-          </button>
+          <div className="flex shrink-0 items-center gap-1 sm:gap-3">
+            <Suspense>
+              <Show when="signed-out">
+                <SignInButton mode="modal">
+                  <button
+                    type="button"
+                    className="flex flex-col items-center gap-0.5 px-2 text-[11px] font-medium text-gray-800 hover:text-green-700"
+                  >
+                    <UserRound size={20} />
+                    Login
+                  </button>
+                </SignInButton>
+              </Show>
+              <Show when="signed-in">
+                <UserButton />
+              </Show>
+            </Suspense>
+
+            <button
+              type="button"
+              onClick={() => setIsCartOpen(true)}
+              className="relative flex flex-col items-center gap-0.5 px-2 text-[11px] font-medium text-gray-800 hover:text-green-700"
+            >
+              <ShoppingBasket size={20} />
+              Cart
+              {cartCount > 0 && (
+                <span className="absolute -right-0.5 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-green-700 px-1 text-[10px] font-bold text-white">
+                  {cartCount}
+                </span>
+              )}
+            </button>
+          </div>
         </div>
       </header>
 
@@ -166,15 +223,6 @@ const Header = () => {
           </Link>
         </div>
       </aside>
-
-      <LoginComponent
-        open={isLoginOpen}
-        onClose={() => setIsLoginOpen(false)}
-        onContinue={(number) => {
-          setMobile(number);
-          setIsLoginOpen(false);
-        }}
-      />
     </>
   );
 };
